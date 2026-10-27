@@ -452,6 +452,8 @@ p, span, a, label, strong, em, b, i {
 }
 
   </style>
+  <!-- Official PayPal JavaScript SDK (Automated Instant Transfer) -->
+  <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
 </head>
 <body dir="ltr" itemscope itemtype="http://schema.org/WebPage" id="yDmH0d" css="yDmH0d">
 
@@ -1428,22 +1430,6 @@ p, span, a, label, strong, em, b, i {
           <div style="color:#009aff; font-size:18px; font-weight:700;">$3.75</div>
         </div>
 
-        <!-- Payment Method -->
-        <div style="margin-bottom:24px;">
-          <label style="display: block; font-size: 13px; color: #9aa0a6; margin-bottom: 8px; font-weight:500;">Payment Method:</label>
-          <div style="background:#18191c; border:1px solid #3c4043; border-radius:4px; padding:20px; text-align:center;">
-            <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#0079C1"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.002.404 5.431 0 5.94 0h7.66c3.27 0 5.602 1.83 5.347 5.127-.234 3.018-2.19 6.073-5.26 6.073H9.98l-.946 6.012-.02.13a.64.641 0 0 1-.633.545z"/><path d="M18.825 5.568c-.234 3.018-2.19 6.073-5.26 6.073H9.86l-.946 6.012-.02.13a.64.641 0 0 1-.633.545H5.877l-.27 1.724a.641.641 0 0 0 .633.74h3.693c.485 0 .9-.364.975-.845l.042-.224.773-4.905.05-.27c.075-.48.49-.845.975-.845h.613c2.932 0 5.228-1.192 5.9-4.664.28-1.455.138-2.67-.437-3.576z" fill="#00457C"/></svg>
-              <span style="color:#fff; font-size:16px; font-weight:700;">PayPal</span>
-            </div>
-            <div style="font-size:13px; color:#9aa0a6; margin-bottom:10px;">Payment is processed securely through PayPal to:</div>
-            <div style="background:#0070ba; color:#fff; font-weight:500; padding:10px 22px; border-radius:4px; display:inline-block; font-size:15px; margin-bottom:12px;">
-              <span id="display-paypal"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="187f736b6c686a71766c6b587f75797174367b7775">[email&#160;protected]</a></span>
-            </div>
-            <div style="font-size:12px; color:#9aa0a6;">Your shipping address will be automatically packaged for Pirate Ship label creation upon order submission.</div>
-          </div>
-        </div>
-
         <!-- Total Calculation -->
         <div style="background:#18191c; border:1px solid #3c4043; border-radius:4px; padding:16px 20px; margin-bottom:24px;">
           <div style="display:flex; justify-content:space-between; font-size:14px; color:#bdc1c6; margin-bottom:6px;">
@@ -1460,9 +1446,11 @@ p, span, a, label, strong, em, b, i {
           </div>
         </div>
 
-        <button type="submit" class="FKF6mc TpQm9d xkUom" style="width:100%; background:#009aff; color:#fff; border:none; padding:14px; border-radius:4px; font-size:15px; font-weight:500; font-family:Roboto; cursor:pointer;">
-          Place Order via PayPal &rarr;
-        </button>
+        <!-- Automated PayPal Smart Buttons (Instant Direct Transfer) -->
+        <div style="margin-bottom:16px;">
+          <label style="display: block; font-size: 13px; color: #9aa0a6; margin-bottom: 10px; font-weight:500;">Pay Securely via PayPal (Instant Direct Transfer):</label>
+          <div id="paypal-button-container" style="min-height: 50px;"></div>
+        </div>
       </form>
     </div>
   </div>
@@ -1517,7 +1505,7 @@ p, span, a, label, strong, em, b, i {
 </div>
 
 <!-- Embedded Store Data for 100% Standalone Offline File Support -->
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="application/json" id="embedded-store-data">
+<script type="application/json" id="embedded-store-data">
 {
   "store_info": {
     "name": "G. K. S. T. Prints",
@@ -1525,7 +1513,8 @@ p, span, a, label, strong, em, b, i {
     "origin_state": "DE",
     "origin_zip": "19943",
     "flat_shipping_rate": 3.75,
-    "paypal_email": "gkstprints@gmail.com"
+    "paypal_email": "gkstprints@gmail.com",
+    "paypal_client_id": "test"
   },
   "products": []
 }
@@ -1536,7 +1525,7 @@ p, span, a, label, strong, em, b, i {
 <script>
 /**
  * G.K.S.T. Prints Storefront Application
- * Pure Google Sites SPA Navigation, Scroll-Down Options, Dynamic Catalog & Checkout
+ * Pure Google Sites SPA Navigation, Scroll-Down Options, Dynamic Catalog & PayPal Smart Buttons
  */
 
 (function () {
@@ -1549,12 +1538,14 @@ p, span, a, label, strong, em, b, i {
       origin_state: "DE",
       origin_zip: "19943",
       flat_shipping_rate: 3.75,
-      paypal_email: "gkstprints@gmail.com"
+      paypal_email: "gkstprints@gmail.com",
+      paypal_client_id: "test"
     },
     products: []
   };
 
   let cart = [];
+  let paypalButtonsRendered = false;
 
   async function init() {
     loadCart();
@@ -1588,14 +1579,10 @@ p, span, a, label, strong, em, b, i {
     }
   }
 
-  // Apply PayPal account & Shipping dynamically
+  // Apply Shipping dynamically
   function applyStoreSettings() {
     const info = storeData.store_info || {};
-    const pp = info.paypal_email || 'gkstprints@gmail.com';
     const rate = Number(info.flat_shipping_rate) || 3.75;
-
-    const paypalEl = document.getElementById('display-paypal');
-    if (paypalEl) paypalEl.textContent = pp;
 
     const coShipping = document.getElementById('co-shipping');
     if (coShipping) coShipping.textContent = `$${rate.toFixed(2)}`;
@@ -1804,9 +1791,10 @@ p, span, a, label, strong, em, b, i {
       }
     });
 
-    // Re-render checkout cart breakdown if on checkout view
+    // Re-render checkout cart breakdown and PayPal Smart Buttons if on checkout view
     if (route === 'checkout') {
       renderCheckoutCart();
+      renderPayPalButtons();
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1985,58 +1973,129 @@ p, span, a, label, strong, em, b, i {
     });
   }
 
-  // Setup Dynamic Checkout
-  function setupCheckout() {
-    // Form submit -> PayPal processing & Pirate Ship address format
-    const checkoutForm = document.getElementById('checkout-order-form');
-    if (checkoutForm) {
-      checkoutForm.addEventListener('submit', (e) => {
-        e.preventDefault();
+  // Official PayPal Smart Buttons Automated Checkout
+  function renderPayPalButtons() {
+    const container = document.getElementById('paypal-button-container');
+    if (!container) return;
 
-        if (cart.length === 0) {
-          showAddNotification(null, 'Please add items to your cart first', 0);
-          return;
+    if (paypalButtonsRendered) return;
+
+    if (typeof paypal !== 'undefined' && paypal.Buttons) {
+      paypalButtonsRendered = true;
+      container.innerHTML = '';
+
+      paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal'
+        },
+        onClick: function(data, actions) {
+          const name = document.getElementById('cust-name')?.value.trim();
+          const email = document.getElementById('cust-email')?.value.trim();
+          const address = document.getElementById('cust-address')?.value.trim();
+          const city = document.getElementById('cust-city')?.value.trim();
+          const state = document.getElementById('cust-state')?.value.trim();
+          const zip = document.getElementById('cust-zip')?.value.trim();
+
+          if (cart.length === 0) {
+            showAddNotification(null, 'Your cart is empty. Please add items first.', 0);
+            return actions.reject();
+          }
+
+          if (!name || !email || !address || !city || !state || !zip) {
+            showAddNotification(null, 'Please fill in your shipping address above.', 0);
+            document.getElementById('checkout-order-form')?.reportValidity();
+            return actions.reject();
+          }
+
+          return actions.resolve();
+        },
+        createOrder: function(data, actions) {
+          const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+          const shippingRate = Number(storeData.store_info?.flat_shipping_rate) || 3.75;
+          const total = (subtotal + shippingRate).toFixed(2);
+
+          return actions.order.create({
+            purchase_units: [{
+              description: "G.K.S.T. Prints Order (Shipped from Felton, DE)",
+              amount: {
+                currency_code: "USD",
+                value: total,
+                breakdown: {
+                  item_total: { currency_code: "USD", value: subtotal.toFixed(2) },
+                  shipping: { currency_code: "USD", value: shippingRate.toFixed(2) }
+                }
+              }
+            }]
+          });
+        },
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function(details) {
+            completeOrder(details);
+          });
+        },
+        onError: function(err) {
+          console.error('PayPal Checkout error:', err);
+          showAddNotification(null, 'Payment error. Please try again.', 0);
         }
+      }).render('#paypal-button-container');
+    } else {
+      // If PayPal script is loading or offline fallback
+      container.innerHTML = `
+        <div style="background:#18191c; border:1px solid #3c4043; border-radius:4px; padding:16px; text-align:center;">
+          <div style="color:#009aff; font-weight:700; font-size:15px; margin-bottom:6px;">Automated PayPal Transfer Active</div>
+          <div style="color:#9aa0a6; font-size:12px;">Official PayPal popup buttons load automatically with internet connection.</div>
+        </div>
+      `;
+    }
+  }
 
-        const name = document.getElementById('cust-name')?.value || '';
-        const address = document.getElementById('cust-address')?.value || '';
-        const city = document.getElementById('cust-city')?.value || '';
-        const state = document.getElementById('cust-state')?.value || '';
-        const zip = document.getElementById('cust-zip')?.value || '';
+  // Complete Order & Generate Pirate Ship Address
+  function completeOrder(details) {
+    const name = document.getElementById('cust-name')?.value || details?.payer?.name?.given_name || 'Customer';
+    const address = document.getElementById('cust-address')?.value || '';
+    const city = document.getElementById('cust-city')?.value || '';
+    const state = document.getElementById('cust-state')?.value || '';
+    const zip = document.getElementById('cust-zip')?.value || '';
 
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const shippingRate = Number(storeData.store_info?.flat_shipping_rate) || 3.75;
-        const total = subtotal + shippingRate;
-        const orderId = 'GKST-' + Math.floor(10000 + Math.random() * 90000);
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shippingRate = Number(storeData.store_info?.flat_shipping_rate) || 3.75;
+    const total = subtotal + shippingRate;
+    const orderId = details?.id || ('GKST-' + Math.floor(10000 + Math.random() * 90000));
 
-        document.getElementById('conf-order-id').textContent = orderId;
-        document.getElementById('conf-name').textContent = name;
-        document.getElementById('conf-total').textContent = `$${total.toFixed(2)}`;
-        document.getElementById('conf-address').textContent = `${address}, ${city}, ${state} ${zip}`;
+    document.getElementById('conf-order-id').textContent = orderId;
+    document.getElementById('conf-name').textContent = name;
+    document.getElementById('conf-total').textContent = `$${total.toFixed(2)}`;
+    document.getElementById('conf-address').textContent = `${address}, ${city}, ${state} ${zip}`;
 
-        const pirateAddress = `${name}
+    const pirateAddress = `${name}
 ${address}
 ${city}, ${state} ${zip}
 United States`;
-        const pirateBtn = document.getElementById('btn-copy-pirate');
-        if (pirateBtn) {
-          pirateBtn.onclick = () => {
-            navigator.clipboard.writeText(pirateAddress).then(() => {
-              pirateBtn.textContent = '✓ Address Copied for Pirate Ship!';
-              setTimeout(() => { pirateBtn.textContent = 'Copy Address for Pirate Ship'; }, 2500);
-            });
-          };
-        }
-
-        cart = [];
-        saveCart();
-        updateCartUI();
-        renderCheckoutCart();
-
-        const orderModal = document.getElementById('order-conf-modal');
-        if (orderModal) orderModal.style.display = 'flex';
-      });
+    const pirateBtn = document.getElementById('btn-copy-pirate');
+    if (pirateBtn) {
+      pirateBtn.onclick = () => {
+        navigator.clipboard.writeText(pirateAddress).then(() => {
+          pirateBtn.textContent = '✓ Address Copied for Pirate Ship!';
+          setTimeout(() => { pirateBtn.textContent = 'Copy Address for Pirate Ship'; }, 2500);
+        });
+      };
     }
+
+    cart = [];
+    saveCart();
+    updateCartUI();
+    renderCheckoutCart();
+
+    const orderModal = document.getElementById('order-conf-modal');
+    if (orderModal) orderModal.style.display = 'flex';
+  }
+
+  // Setup Dynamic Checkout
+  function setupCheckout() {
+    renderPayPalButtons();
 
     document.getElementById('btn-done-modal')?.addEventListener('click', () => {
       const orderModal = document.getElementById('order-conf-modal');
@@ -2053,5 +2112,5 @@ United States`;
 })();
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a50d5b3bd852d673',t:'MTc5MzA1ODU1NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a50dd1e67a181519',t:'MTc5MzA2MzQxNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
