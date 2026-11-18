@@ -172,7 +172,8 @@ body.dopen #drawer{transform:none;visibility:visible;transition:transform .25s e
 /* ===== EDIT ME ===== */
 const CFG = {
   PAYPAL_CLIENT_ID: 'ARJJqO4LAfKe9M_3n6cagIs5CBzSskNrf6u33JRnOLRwtJCKqG5-cP2BGSY9Ahzhc9dLekSsz5ZkzaI1',
-  SHIPPING: 5.00,        // flat US shipping per order, in dollars
+  TEST_MODE: true,       // true = every item costs $1 and shipping is off (for testing). Set to false for real prices and shipping.
+  SHIPPING: 5.00,        // flat US shipping per order, in dollars (used when TEST_MODE is false)
   NOTIFY_URL: ''         // optional: paste your notification link here (see notes) to get a message for every paid order
 };
 const PRODUCTS = [{
@@ -186,6 +187,7 @@ const PRODUCTS = [{
   dots: ['linear-gradient(135deg,#fff 50%,#111 50%)','#d12b1e','#0a4fc4','#0aa94a']
 }];
 /* ==================== */
+if (CFG.TEST_MODE) PRODUCTS.forEach(p => p.variants.forEach(v => v.price = 1.00));
 
 const $ = s => document.querySelector(s);
 const money = n => '$' + n.toFixed(2);
@@ -193,7 +195,7 @@ let cart = [];
 try { cart = JSON.parse(localStorage.getItem('gkst-cart') || '[]'); } catch (e) {}
 const save = () => { try { localStorage.setItem('gkst-cart', JSON.stringify(cart)); } catch (e) {} };
 const item = l => { const p = PRODUCTS.find(x => x.id === l.pid), v = p.variants[l.vi]; return {name: p.name + ' (' + v.label + ')', price: v.price, qty: l.qty}; };
-const totals = () => { const sub = cart.reduce((s, l) => s + item(l).price * item(l).qty, 0); return {sub, ship: cart.length ? CFG.SHIPPING : 0, total: sub + (cart.length ? CFG.SHIPPING : 0)}; };
+const totals = () => { const sub = cart.reduce((s, l) => s + item(l).price * item(l).qty, 0); return {sub, ship: cart.length && !CFG.TEST_MODE ? CFG.SHIPPING : 0, total: sub + (cart.length && !CFG.TEST_MODE ? CFG.SHIPPING : 0)}; };
 
 /* ----- shop ----- */
 PRODUCTS.forEach(p => {
@@ -239,7 +241,7 @@ function refresh() {
     return `<div class="line"><b>${it.name}</b> &nbsp; ${money(it.price)}<div class="q">Qty: ${it.qty}<button class="rm" data-i="${i}">remove</button></div></div>`; }).join('') : '<p class="empty">Your cart is empty.</p>';
   const t = totals();
   $('#sum').innerHTML = cart.length ? cart.map(l => { const it = item(l); return `<div><span>${it.name} &times; ${it.qty}</span><span>${money(it.price * it.qty)}</span></div>`; }).join('')
-    + `<div><span>Shipping (US flat rate)</span><span>${money(t.ship)}</span></div><div class="tot"><span>Total</span><span>${money(t.total)}</span></div>` : '<p class="empty">Add items to check out.</p>';
+    + (t.ship ? `<div><span>Shipping (US flat rate)</span><span>${money(t.ship)}</span></div>` : '') + `<div class="tot"><span>Total</span><span>${money(t.total)}</span></div>` : '<p class="empty">Add items to check out.</p>';
   $('#form').style.display = $('#pp').style.display = cart.length ? '' : 'none';
 }
 $('#cartlines').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { cart.splice(i, 1); save(); refresh(); } };
@@ -276,16 +278,19 @@ function renderPayPal() {
       });
     },
     onApprove: (d, a) => a.order.capture().then(det => {
+      const cap = (((det.purchase_units || [])[0] || {}).payments || {}).captures, status = cap && cap[0] ? cap[0].status : det.status;
+      try {
       const f = info(), t = totals(), lines = cart.map(l => { const it = item(l); return it.qty + ' x ' + it.name + ' @ ' + money(it.price); });
       const text = ['NEW ORDER ' + order, f.name + ' | ' + f.phone + ' | ' + f.email, f.addr1 + (f.addr2 ? ', ' + f.addr2 : '') + ', ' + f.city + ', ' + f.state + ' ' + f.zip, ...lines,
-        'Subtotal ' + money(t.sub) + ' + shipping ' + money(t.ship) + ' = ' + money(t.total), f.notes ? 'Notes: ' + f.notes : '', 'PayPal ID: ' + det.id].filter(Boolean).join('\n');
+        'Subtotal ' + money(t.sub) + ' + shipping ' + money(t.ship) + ' = ' + money(t.total), f.notes ? 'Notes: ' + f.notes : '', 'PayPal ID: ' + det.id + ' (' + status + ')'].filter(Boolean).join('\n');
       if (CFG.NOTIFY_URL) fetch(CFG.NOTIFY_URL, {method: 'POST', headers: {'Content-Type': 'text/plain'}, body: text}).catch(() => {});
       cart = []; save(); refresh();
       $('#co').hidden = true; document.querySelector('.cartview').hidden = true;
-      $('#thanks').hidden = false; $('#thanks').innerHTML = `<h2>Thank you, ${f.name.split(' ')[0]}!</h2><p>Your order <b>${order}</b> is paid. A receipt is on its way to ${f.email}.</p><p><button class="btn" onclick="closeDrawer()">Keep shopping</button></p>`;
+      $('#thanks').hidden = false; $('#thanks').innerHTML = `<h2>Thank you, ${f.name.split(' ')[0]}!</h2><p>Your order <b>${order}</b> ${status === 'COMPLETED' ? 'is paid' : 'was received, but PayPal is still reviewing the payment (status: ' + status + ')'}. A receipt is on its way to ${f.email}.</p><p style="color:var(--mute);font-size:14px">PayPal transaction ID: ${det.id}</p><p><button class="btn" onclick="closeDrawer()">Keep shopping</button></p>`;
       $('#drawer').scrollTo({top: 0, behavior: 'smooth'});
+      } catch (e) { console.error(e); alert('Your payment went through. PayPal transaction ID: ' + det.id); }
     }),
-    onError: () => { $('#msg').textContent = 'Payment did not go through. Nothing was charged. Please try again.'; }
+    onError: () => { $('#msg').textContent = 'Something went wrong with PayPal. Before trying again, check your email for a PayPal receipt. If you were charged, do not pay twice.'; }
   }).render('#pp');
 }
 
